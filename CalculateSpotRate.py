@@ -1,42 +1,33 @@
-import pandas as pd
-import numpy as np
-import numpy_financial as npf
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 def bootstrap_yield_curve(bonds):
-    spot_rates = np.zeros(len(bonds))
+    spot_rates = []
 
-    for i, (price, coupon_rate, maturity) in enumerate(sorted(bonds, key=lambda x: x[2])):
-        cash_flows = np.array([coupon_rate] * int(maturity - 1) + [100 + coupon_rate])
-        time_periods = np.arange(1, maturity + 1)
-        # Use previously calculated spot rates for discounted cash flows
-        if i == 0:
-            discounted_cash_flows = cash_flows / (1 + spot_rates[i])**time_periods
+    for bond in bonds:
+        price = bond[0]
+        coupon = bond[1]
+        periods = bond[2]
+        if periods == 1:
+            spot_rate = ((100+coupon)/price)**(1/periods)-1
+            spot_rates.append(spot_rate)
         else:
-            discounted_cash_flows = [cf / (1 + spot_rates[j])**time_periods[j] for j, cf in enumerate(cash_flows)]
-            discounted_cash_flows = np.sum(discounted_cash_flows)
+            disc_cf = 0
+            for i in range(periods - 1):
+                disc_cf = disc_cf + (coupon/((1 + spot_rates[i])**i))
+            spot_rate = ((100+coupon)/(price-disc_cf))**(1/periods)-1
+            spot_rates.append(spot_rate)
 
-        residual = price - discounted_cash_flows
-        if residual <= 0:
-            # Handle cases where residual is too low
-            print(f"Warning: Residual for bond with maturity {maturity} is too low. Adjusting spot rate calculation.")
-            spot_rate = spot_rates[i-1]  # Use previous spot rate as an approximation
-        else:
-            spot_rate = ((100 / residual)**(1 / maturity)) - 1
-        spot_rates[i] = spot_rate
+    spot_rates_annual = []
+    for i in spot_rates:
+        spot_rates_annual.append(i*2)
 
-    return spot_rates
+    return spot_rates_annual
 
 
 def calculate_spot_rate(df):
-    # bonds = []
-    # for i in range(len(df)):
-    #     bond = (df.iloc[i]["DIRTY PRICE"], df.iloc[i]["COUPON"]/2, df.iloc[i]["NUMBER COUPONS"] + 1)
-    #     bonds.append(bond)
-    bonds = [
-        (95, 1, 1),
-        (190, 1.5, 2),
-        (188, 2, 3)]
+    bonds = []
+    for i in range(len(df)):
+        bond = (df.iloc[i]["DIRTY PRICE"], df.iloc[i]["COUPON"]/2, df.iloc[i]["NUMBER COUPONS"] + 1)
+        bonds.append(bond)
     spot_rates = bootstrap_yield_curve(bonds)
-    return spot_rates
+    df["SPOT RATES"] = spot_rates
+    return df

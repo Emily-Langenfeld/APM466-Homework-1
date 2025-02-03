@@ -1,7 +1,4 @@
-import pandas as pd
-import numpy as np
 import numpy_financial as npf
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
@@ -23,6 +20,7 @@ def calculate_ytm(df):
         coupon = (df.iloc[i]["COUPON"])/2
         cashflow = [-df.iloc[i]["DIRTY PRICE"]] + [coupon]*coupon_num
         cashflow.append(100+coupon)
-        df.loc[i, "YTM"] = npf.irr(cashflow)
+        ytm_semi_annual = npf.irr(cashflow)
+        df.loc[i, "YTM"] = ytm_semi_annual * 2
     return df
 

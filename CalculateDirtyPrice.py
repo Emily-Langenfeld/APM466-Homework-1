@@ -1,4 +1,3 @@
-import pandas as pd
 from datetime import datetime
 
 # Since all the bonds we are working with mature exactly 6 months apart from each other,
